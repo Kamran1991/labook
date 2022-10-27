@@ -1,0 +1,5 @@
+# must be ended with a new line "LF" (Unix) and not "CRLF" (Windows)
+23 05 * * * wget https://labook.nestmart.co/attendence_cron
+# An empty line is required at the end of this file for a valid cron file.
+
+23 30 * * * wget https://labook.nestmart.co/paycycle_cron
