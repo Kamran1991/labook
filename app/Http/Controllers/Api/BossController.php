@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Mail;
 use App\Models\Phone_confirmation;
 use Illuminate\Support\Facades\Hash;
 use \Illuminate\Support\Facades\Validator;
@@ -1476,5 +1477,42 @@ class Bosscontroller extends Controller
         curl_setopt($x, CURLOPT_POSTFIELDS, $post);
         $y = curl_exec($x);
         curl_close($x);
+    }
+
+    /**
+     *
+     * Send Email to boss when someone tap labook
+     * int $employee_id
+     * void
+     */
+    public function employee_tap_labook($employee_id)
+    {
+        $query = DB::table('users');
+        $query = $query->select('id', 'is_active as active', 'name', 'phone as phone_number', 'type as user_type', );
+        $query = $query->where('id', $employee_id);
+        $boss_info = $query->first();
+        $head = 'A user with id ' . $boss_info->id . ' has tapped Labook pay';
+        $data = array(
+            'title' => $head,
+            'body' =>  json_encode($boss_info)
+        );
+
+        if ($boss_info) {
+            //void send(string|array $view, array $data, Closure|string $callback)
+            Mail::send('mail', $data, function($callback) {
+                $callback->subject('Someone has tapped Labook pay');
+                $callback->to('shahbaz.webdev@gmail.com', 'Shahbaz Khan');
+                $callback->from('mshahbazkhuram@gmail.com','Shahbaz Khan');
+            });
+            return response()->json([
+                'status'=> true,
+                'message' => "email sent Successfully"
+            ], 200);
+        } else {
+            return response()->json([
+                'status'=> false,
+                'message' => "There is some error while sending email please contact support"
+            ], 200);
+        }
     }
 }

@@ -72,6 +72,8 @@ Route::prefix('boss')->group(function () {
             Route::get('loan/{employee_id}', [BossController::class, 'get_loan']);
             Route::get('record_payment/{employee_id}', [BossController::class, 'release_payment']);
             Route::post('paycycle', [BossController::class, 'paycycle']);
+
+            Route::get('employee_tap_labook/{id}', [BossController::class, 'employee_tap_labook']);
             
         });
     });
