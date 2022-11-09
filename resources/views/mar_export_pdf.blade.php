@@ -10,6 +10,7 @@
 			font-family: Arial, Helvetica, sans-serif;
 			border-collapse: collapse;
 			width: 100%;
+			margin-left: 50px;
 		}
 
 		#customers td, #customers th {
@@ -37,10 +38,12 @@
 		#customers td.present {
 			color: #04AA6D;
 			font-size:48px;
+			padding-left: 24px;
 		}
 		#customers td.paid {
 			color: #818CC5;
 			font-size:48px;
+			padding-left: 24px;
 		}
 
 		#customers td.absent {
@@ -64,7 +67,7 @@
 		    font-size: 24px;
 		    display: inline-block; 
 		    width: 1em;
-			margin-left: -1em;
+			margin-left: 1em;
 		}
 	</style>
 </head>
@@ -76,14 +79,16 @@
 	<tr class="counts">
 		<td class="present">{{$d['present']}}</td>
 		<td class="paid">{{$d['paid_holiday']}}</td>
+		<td></td>
 		<td class="absent">{{$d['absent']}}</td>
 		<td class="halfday">{{$d['halfday']}}</td>
 	</tr>
 	<tr>
-		<td>Present</td>
-		<td>Paid Holiday</td>
-		<td>Absent</td>
-		<td>Half Day</td>
+		<td style="width: 20%;">Present</td>
+		<td style="width: 20%;">Paid Holiday</td>
+		<td style="width: 20%;"></td>
+		<td style="width: 20%;">Absent</td>
+		<td style="width: 20%;">Half Day</td>
 	</tr>
 </table>
 
