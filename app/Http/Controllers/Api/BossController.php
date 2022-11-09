@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use \Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\API\ResponseObject;
 use Illuminate\Support\Facades\Http;
+use PDF;
 use DB;
 
 class Bosscontroller extends Controller
@@ -1204,6 +1205,7 @@ class Bosscontroller extends Controller
             }
             return response()->json(['status'=> false, 'error'=> $errors],200);
         }
+
         /*$sql = "select *, dayname(punch_date) as day_name from attendence where month(punch_date) = '".$post_data['month']."' and business_id = '".$post_data['business_id']."'";*/
         $sql = "select distinct(punch_date) as punch_date from attendence where find_in_set(employee_id, '".$post_data['employee_id']."') and punch_date
         between '".$post_data['start_date']."' and '".$post_data['end_date']."' and type =1";
@@ -1234,18 +1236,114 @@ class Bosscontroller extends Controller
             $report[$key]['halfday_list'] = [];
         }
         if ($report) {
+            // get employee wise data
+            $sql2 = "select a.absent_present, a.employee_id ,e.name,a.punch_date,a.approved_status from employee e join attendence a on e.id = a.employee_id WHERE a.absent_present IS NOT NULL AND (a.punch_date BETWEEN '".$post_data['start_date']."' AND '".$post_data['end_date']."') AND find_in_set(e.id, '".$post_data['employee_id']."');";
+            $res  = DB::select($sql2);
+            $emp_records = [];
+            foreach ($res as $key => $val) {
+                // 0=>absent, 1=>present, 3=> offday, 4=>paid_holdiay
+                if (!array_key_exists($val->employee_id, $emp_records)) {
+                    $emp_records[$val->employee_id]['absent'] = 0;
+                    $emp_records[$val->employee_id]['present'] = 0;
+                    $emp_records[$val->employee_id]['offday'] = 0;
+                    $emp_records[$val->employee_id]['paid_holiday'] = 0;
+                }
+                if ($val->absent_present == 0) {
+                    $emp_records[$val->employee_id]['absent'] += 1;   
+                } else if ($val->absent_present == 1) {
+                     $emp_records[$val->employee_id]['present'] += 1;   
+                } else if ($val->absent_present == 3) {
+                     $emp_records[$val->employee_id]['offday'] += 1;   
+                } else if ($val->absent_present == 4) {
+                     $emp_records[$val->employee_id]['paid_holiday'] += 1;   
+                }
+            }
+
             return response()->json([
                 'status'=> true,
-                'data'=> ['monthly_attendence' => $report]
+                'data'=> [
+                    'monthly_attendence' => $report,
+                    'employee_reocrd' => $emp_records
+                ]
             ],200);
         } else {
             return response()->json([
                 'status'=> false,
-                'data'=> ['monthly_attendence' => []]
+                'data'=> [
+                    'monthly_attendence' => [],
+                    'employee_reocrd' => []
+                ]
             ],200);
         }
     }
 
+    public function export_monthly_attendence_report_pdf(Request $request)
+    {
+        $errors = [];
+        $post_data = $request->json()->all();
+        $rules = [
+            'boss_id' => 'required',
+            'business_id' => 'required',
+            'start_date' => 'required',
+            'end_date' => 'required'
+        ];
+        $validator = Validator::make($post_data,
+            $rules
+        );
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->getMessages() as $item) {
+                array_push($errors, $item);
+            }
+            return response()->json(['status'=> false, 'error'=> $errors],200);
+        }
+        /*$sql = "select *, dayname(punch_date) as day_name from attendence where month(punch_date) = '".$post_data['month']."' and business_id = '".$post_data['business_id']."'";*/
+        $sql = "select distinct(punch_date) as punch_date from attendence where find_in_set(employee_id, '".$post_data['employee_id']."') and punch_date
+        between '".$post_data['start_date']."' and '".$post_data['end_date']."' and type =1";
+        $res = DB::select($sql);
+        $report = [];
+
+        foreach ($res as $key=>$r) {
+            $sql2 = "select distinct a.employee_id as emp_id,e.name,a.punch_in_time,a.punchout_time,a.absent_present,a.approved_status from employee e join attendence a on e.id = a.employee_id where a.absent_present = 0 and
+            punch_date='".$r->punch_date."' and find_in_set(e.id, '".$post_data['employee_id']."');";
+            $absent_list  = DB::select($sql2);
+            $sql2 = "select distinct a.employee_id as emp_id,e.name,a.punch_in_time,a.punchout_time,a.absent_present,a.approved_status from employee e join attendence a on e.id = a.employee_id where a.absent_present = 1 and
+            punch_date='".$r->punch_date."' and find_in_set(e.id, '".$post_data['employee_id']."');";
+            $present_list  = DB::select($sql2);
+            //echo $sql2;
+            $sql2 = "select distinct a.employee_id as emp_id,e.name,a.punch_in_time,a.punchout_time,a.absent_present,a.approved_status from employee e join attendence a on e.id = a.employee_id where a.absent_present = 3 and
+            punch_date='".$r->punch_date."' and find_in_set(e.id, '".$post_data['employee_id']."');";
+            $offday_list  = DB::select($sql2);
+            $sql2 = "select distinct a.employee_id as emp_id,e.name,a.punch_in_time,a.punchout_time,a.absent_present,a.approved_status from employee e join attendence a on e.id = a.employee_id where a.absent_present = 4 and
+            punch_date='".$r->punch_date."' and find_in_set(e.id, '".$post_data['employee_id']."');";
+            $paid_holiday_list  = DB::select($sql2);
+            
+            $date = $r->punch_date;
+            $report[$key]['date'] = $date;
+            $report[$key]['absent'] = count($absent_list);
+            $report[$key]['present'] = count($present_list);
+            $report[$key]['paid_holiday'] = count($paid_holiday_list);
+            $report[$key]['offday'] = count($offday_list);
+            $report[$key]['halfday'] = 0;
+            $report[$key]['absent_list'] = $absent_list;
+            $report[$key]['present_list'] = $present_list;
+            $report[$key]['paid_holiday_list'] = $paid_holiday_list;
+            $report[$key]['offday_list'] = $offday_list;
+            $report[$key]['halfday_list'] = [];
+        }
+        /*echo "<pre>";
+        foreach ($report as $d) {
+
+            print_r($d['date']);   
+        }
+        die();*/
+        $pdf = PDF::loadView('mar_export_pdf', [
+            'data' => $report
+        ]);
+
+        return $pdf->download('users.pdf');
+
+    }
     public function employee_past_months(Request $request)
     {
         $errors = [];
@@ -1482,16 +1580,38 @@ class Bosscontroller extends Controller
     /**
      *
      * Send Email to boss when someone tap labook
-     * int $employee_id
+     * Request $request
      * void
      */
-    public function employee_tap_labook($employee_id)
+    public function employee_tap_labook(Request $request)
     {
-        $query = DB::table('users');
-        $query = $query->select('id', 'is_active as active', 'name', 'phone as phone_number', 'type as user_type', );
-        $query = $query->where('id', $employee_id);
+
+        $errors = [];
+        $post_data = $request->json()->all();
+
+        $rules = [
+            'boss_id' => 'required',
+            'business_id' => 'required'
+        ];
+        $validator = Validator::make($post_data,
+            $rules
+        );
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->getMessages() as $item) {
+                array_push($errors, $item);
+            }
+            return response()->json(['status'=> false, 'error'=> $errors],200);
+        }
+
+        $query = DB::table('businesses');
+        $query = $query->select('id',  'name', 'boss_id', 'owner_name', 'is_active as active','phone as phone_number');
+        $query = $query->where('id', $post_data['business_id']);
+        $query = $query->where('boss_id', $post_data['boss_id']);
         $boss_info = $query->first();
-        $head = 'A user with id ' . $boss_info->id . ' has tapped Labook pay';
+
+        $head = 'A user with Business id ' . $boss_info->id . ' has tapped Labook pay';
+
         $data = array(
             'title' => $head,
             'body' =>  json_encode($boss_info)

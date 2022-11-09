@@ -59,6 +59,7 @@ Route::prefix('boss')->group(function () {
             Route::post('employee_past_months', [BossController::class, 'employee_past_months']);
             Route::get('get_staff_attendence_history/{id}', [BossController::class, 'get_staff_attendence_history']);
             Route::post('monthly_attendence_report', [BossController::class, 'monthly_attendence_report']);
+            Route::post('export_monthly_attendence_report_pdf', [BossController::class, 'export_monthly_attendence_report_pdf']);
             Route::post('create_invitation_link', [BossController::class, 'create_invitation_link']);
             Route::get('home/{id}/{business_id}', [BossController::class, 'home']);
             Route::get('upcoming_pay/{id}/{business_id}', [BossController::class, 'upcoming_pay']);
@@ -73,8 +74,7 @@ Route::prefix('boss')->group(function () {
             Route::get('record_payment/{employee_id}', [BossController::class, 'release_payment']);
             Route::post('paycycle', [BossController::class, 'paycycle']);
 
-            Route::get('employee_tap_labook/{id}', [BossController::class, 'employee_tap_labook']);
-            
+            Route::post('employee_tap_labook', [BossController::class, 'employee_tap_labook']);
         });
     });
 });
