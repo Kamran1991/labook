@@ -69,13 +69,20 @@
 		    width: 1em;
 			margin-left: 1em;
 		}
+		.logo {
+			margin-left:-2rem;
+			margin-bottom:1rem;
+			margin-top:-2rem;
+		}
 	</style>
 </head>
 <body>
-
+<div class="logo">
+	<img src="{{ public_path('images/folder.jpeg') }}" alt="logo" width="80" height="80">
+</div>
 @foreach ($data as $d)
+<h3>{{ \Carbon\Carbon::parse($d['date'])->format('d F | D')}}</h3>
 <table id="customers">
-	<h3>{{ \Carbon\Carbon::parse($d['date'])->format('d F | D')}}</h3>
 	<tr class="counts">
 		<td class="present">{{$d['present']}}</td>
 		<td class="paid">{{$d['paid_holiday']}}</td>
